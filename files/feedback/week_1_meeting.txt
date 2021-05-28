@@ -1,0 +1,18 @@
+objective :
+- purpose is for improving correcting on spell check, 
+	1. dective if right or wrong
+	2. if wrong suggest the right one 
+	3. 
+- ways to impliment:
+	1. check in dict and ons on the most correct || switch the characters
+	2. predefine rules, for example: ត​  with ទ
+	3. search in dict, if not then => to mostly likely go for the nearest one. (edit distance)
+
+
+- suggestion : using searching ponatic or Romanization words, hard using native lang
+
+- new 2 elements 
+	1. convert into Romanization words, check symspell python,
+	2. g2p
+
+TrieNode is good for string, easy to search. also use for the searching distances

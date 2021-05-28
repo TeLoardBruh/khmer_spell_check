@@ -1,0 +1,11 @@
+splitting, take each word to correct
+
+segment the word and check
+
+dictationary 
+
+pharse 1 : 
+	- create dictionary,
+	- find the different distance of words
+	- search methods, find the similiar words for the inputs
+	- n-grams 
