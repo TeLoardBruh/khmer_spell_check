@@ -1,24 +1,22 @@
+from typing import Optional
+
+from fastapi import FastAPI
+
 import json
 import pkg_resources
 from symspellpy import SymSpell, Verbosity
 
 
-def create_ditc():
-    sym_spell = SymSpell()
-    corpus_path = './files/dict/km_KH.txt'
-    sym_spell.create_dictionary(corpus_path,encoding='utf8')
+app = FastAPI()
 
 
-    # creating file 
-    with open('own_dic.txt', 'w', encoding='utf-8') as file:
-        for key, value in sym_spell.words.items(): 
-            file.write('%s %s \n' % (key, value)) # use `json.loads` to do the reverse
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
 
 
-    print((sym_spell.words.items()))
-
-
-def check_up():
+@app.get("/words/{str}")
+def read_item(str: str, q: Optional[str] = None):
     sym_spell = SymSpell(max_dictionary_edit_distance=0, prefix_length=7)
     dictionary_path = './files/dict/own_dic.txt'
     # term_index is the column of the term and count_index is the
@@ -36,9 +34,8 @@ def check_up():
     # print("in here")
     # for suggestion in suggestions:
     #     print(suggestion)
-    result = sym_spell.word_segmentation(input_term)
+    result = sym_spell.word_segmentation(str)
+    words = result.corrected_string
     print("{}, {}, {}".format(result.corrected_string, result.distance_sum,
                           result.log_prob_sum))
-
-
-check_up()
+    return {"str": words,}
