@@ -17,6 +17,26 @@ def create_ditc():
 
     print((sym_spell.words.items()))
 
+def create_mydic():
+    f = open("./files/dict/km_KH.txt", "r",encoding='utf8')
+    lines = []
+    linesDict = {}
+    
+
+    with open ("./files/dict/km_KH.txt", "r",encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        # print(data)
+        lines.append(data)
+        for i in data:
+            linesDict[i] = 1
+    f.close()
+    print(linesDict)
+    with open('own_dic.txt', 'w', encoding='utf-8') as file:
+        for k, v in linesDict.items():
+            num = 1
+            line = "{} {} \n".format(k,v)
+            file.write(line) # use `json.loads` to do the reverse
+
 
 def check_up():
     sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
@@ -41,4 +61,4 @@ def check_up():
     #                       result.log_prob_sum))
 
 
-check_up()
+create_mydic()
