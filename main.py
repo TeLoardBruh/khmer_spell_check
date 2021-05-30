@@ -3,8 +3,10 @@ from typing import Optional
 from fastapi import FastAPI
 
 import json
+import os
 import pkg_resources
 from symspellpy import SymSpell, Verbosity
+from hunspell import Hunspell
 
 
 app = FastAPI()
@@ -46,9 +48,9 @@ def read_item(str: str, q: Optional[str] = None):
     return {"str": words,}
 
 
-# word correction
+# word correction in SymSpell
 
-@app.get("/words_correct/{str}")
+@app.get("/words_correct_s/{str}")
 def read_item(str: str):
     sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
     dictionary_path = './files/dict/own_dic_v2.txt'
@@ -79,3 +81,25 @@ def read_item(str: str):
     # print("{}, {}, {}".format(result.corrected_string, result.distance_sum,
     #                       result.log_prob_sum))
     return {"str": results,'each word': 'word'}
+
+
+# word correction in hunspell
+
+@app.get("/words_correct_h/{str}")
+def read_item(str: str):
+    # adding the dictionary
+    h = Hunspell('km_KH', hunspell_data_dir='./files/dict')
+    # True
+    print(h.spell('ស្រឡាញ់'))
+    if(h.spell(str)):
+        return {"str": str,'each word': 'word'}
+    else:
+        result = h.suggest(str)
+        return {"str": result,'each word': 'word'}
+
+
+    
+
+
+    
+    
