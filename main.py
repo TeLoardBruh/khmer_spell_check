@@ -1,6 +1,9 @@
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 import json
 import os
@@ -10,14 +13,29 @@ from hunspell import Hunspell
 
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+# @app.get("/")
+# def read_root():
+#     return {"Hello": "World"}
 
 
-
+@app.get("/", response_class=HTMLResponse)
+async def read_item(request: Request,words):
+    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    dictionary_path = './files/dict/own_dic_v2.txt'
+    results = []
+    if words:
+        sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+        result = sym_spell.lookup(words, Verbosity.CLOSEST,
+                                max_edit_distance=2)
+        
+        for suggestion in result:
+            results.append(suggestion)
+    
+    return templates.TemplateResponse("index.html", {"request": request, "id": results})
 
 
 # word_segmentation 

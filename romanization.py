@@ -61,4 +61,32 @@ def check_up():
     #                       result.log_prob_sum))
 
 
-create_mydic()
+
+
+# phoni
+
+def check_pho():
+    f = open("./files/dict/word_phonemic_final.txt", "r",encoding="utf8")
+    wordsDict = {}
+    # test = f.read().split()
+    with open ("./files/dict/word_phonemic_final.txt", "r",encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        
+        for i in data:
+            # print(i.split(' ',1)[1])
+            khmer_w = i.split(' ',1)[0]
+            khmer_p = i.split(' ',1)[1]
+            wordsDict[khmer_w] = khmer_p
+        # wordsDict.append(data)
+
+    f.close()
+    # print(wordsDict)
+    with open('own_dic_p.txt', 'w', encoding='utf-8') as file:
+        for k, v in wordsDict.items():
+            num = 1
+            line = "{} {} {} \n".format(k,v,num)
+            file.write(line) # use `json.loads` to do the reverse
+    # print(test)
+    
+
+check_pho()
