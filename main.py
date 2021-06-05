@@ -1,23 +1,42 @@
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 import json
 import os
 import pkg_resources
 from symspellpy import SymSpell, Verbosity
 from hunspell import Hunspell
+from itertools import islice
 
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+# @app.get("/")
+# def read_root():
+#     return {"Hello": "World"}
 
 
-
+@app.get("/", response_class=HTMLResponse)
+async def read_item(request: Request,words):
+    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    dictionary_path = './files/dict/own_dic_v2.txt'
+    results = []
+    if words:
+        sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+        result = sym_spell.lookup(words, Verbosity.CLOSEST,
+                                max_edit_distance=2)
+        
+        for suggestion in result:
+            results.append(suggestion)
+    
+    return templates.TemplateResponse("index.html", {"request": request, "id": results})
 
 
 # word_segmentation 
@@ -31,7 +50,7 @@ def read_item(str: str, q: Optional[str] = None):
     sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
     # print(sym_spell.words.items())
     # lookup suggestions for single-word input strings
-    input_term = "ខ្ញុំ ចង់"  # misspelling of "members"
+    input_term = "ខ្ញុំចង់"  # misspelling of "members"
     # max edit distance per lookup
     # (max_edit_distance_lookup <= max_dictionary_edit_distance)
     # suggestions = sym_spell.lookup(input_term, Verbosity.CLOSEST,
@@ -45,6 +64,7 @@ def read_item(str: str, q: Optional[str] = None):
     words = result.corrected_string
     print("{}, {}, {}".format(result.corrected_string, result.distance_sum,
                           result.log_prob_sum))
+    
     return {"str": words,}
 
 
@@ -64,6 +84,49 @@ def read_item(str: str):
     return {"str": results,'each word': 'word'}
 
 
+# words sym pho
+def check_to_pho(string):
+    f = open("./files/dict/word_phonemic_final.txt", "r",encoding="utf8")
+    wordsDict = {}
+    # test = f.read().split()
+    with open ("./files/dict/own_dic_p.txt", "r",encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        for i in data:
+            # print(i.split(' ',1)[1])
+            khmer_w = i.split(' ',1)[0]
+            khmer_p = i.split(' ',1)[1]
+            # wordsDict[khmer_w+khmer_p] = 1
+            wordsDict[khmer_w] = str(khmer_p)
+            # print(khmer_p)
+        # wordsDict.append(data)
+
+    f.close()
+    for k,v in wordsDict.items():
+        if string == k:
+            newV = v.split('1',1)[0]
+            # print(k + ' : '+ newV)
+            return k,newV
+    return string
+@app.get("/words_correct_sp/{str}")
+def read_item(str: str):
+    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    dictionary_path = './files/dict/own_dic_v2.txt'
+
+    sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+    result = sym_spell.lookup(str, Verbosity.CLOSEST,
+                               max_edit_distance=2,)
+    
+    results = []
+ 
+    list_k_p = {}
+    for suggestion in result:
+        results.append(suggestion)
+    for i in results:
+        a = check_to_pho(i.term)
+        kh, ph = a
+        list_k_p[kh] = ph
+    return {"str": list_k_p,'each word': 'word'}
+
 # word correction in hunspell
 
 @app.get("/words_correct_h/{str}")
@@ -79,8 +142,47 @@ def read_item(str: str):
         return {"str": result,'each word': 'word'}
 
 
-    
+# words seg + correction
+@app.get("/words_sc/{str}")
+def read_item(str: str, q: Optional[str] = None):
+    sym_spell_s = SymSpell(max_dictionary_edit_distance=0, prefix_length=7)
+    sym_spell_c = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    dictionary_path = './files/dict/own_dic_v2.txt'
+    # term_index is the column of the term and count_index is the
+    # column of the term frequency
+    sym_spell_s.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+    sym_spell_c.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+    # print(sym_spell.words.items())
+    # lookup suggestions for single-word input strings
+    input_term = "ខ្ញុំចង់"  # misspelling of "members"
+    # max edit distance per lookup
+    # (max_edit_distance_lookup <= max_dictionary_edit_distance)
+    # suggestions = sym_spell.lookup(input_term, Verbosity.CLOSEST,
+    #                            max_edit_distance=2, )
+    # # display suggestion term, term frequency, and edit distance
+    # # display suggestion term, term frequency, and edit distance
+    # print("in here")
+    # for suggestion in suggestions:
+    #     print(suggestion)
+    result = sym_spell_s.word_segmentation(str)
+    words = result.corrected_string
+    print("{}, {}, {}".format(result.corrected_string, result.distance_sum,
+                          result.log_prob_sum))
+    # print(type(words))
+    segmentation_split = words.split()
+    segmentation_split_res = []
+    res_arr = []
+    for i in segmentation_split:
+        segmentation_split_res.append(i)
+        # print(i)
+    for i in range(len(segmentation_split_res)):
+        # print(arr[i])
+        result = sym_spell_c.lookup(segmentation_split_res[i], Verbosity.CLOSEST,
+                               max_edit_distance=2)
+        for suggestion in result:
+            res_arr.append(suggestion)
+        # res.append(result)
 
-
+    return {"sentence : ": words,"words in segment correction : ": res_arr }
     
     

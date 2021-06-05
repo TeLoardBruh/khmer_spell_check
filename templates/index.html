@@ -1,0 +1,24 @@
+<html>
+
+<head>
+    <title>Item Details</title>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <form action="/" method="GET">
+        <label for="fname">Your words:</label><br>
+        <input type="text" id="" name="words" value=""><br>
+        <!-- <label for="lname">Last name:</label><br>
+        <input type="text" id="lname" name="lname" value="Doe"><br><br> -->
+        <input type="submit" value="Submit">
+    </form>
+    <h1>Correction check:
+        {% for item in id %}
+        <li>{{item}}</li>
+        {% endfor %}
+    </h1>
+    
+</body>
+
+</html>
