@@ -10,6 +10,7 @@ import os
 import pkg_resources
 from symspellpy import SymSpell, Verbosity
 from hunspell import Hunspell
+from itertools import islice
 
 
 app = FastAPI()
@@ -82,6 +83,49 @@ def read_item(str: str):
         results.append(suggestion)
     return {"str": results,'each word': 'word'}
 
+
+# words sym pho
+def check_to_pho(string):
+    f = open("./files/dict/word_phonemic_final.txt", "r",encoding="utf8")
+    wordsDict = {}
+    # test = f.read().split()
+    with open ("./files/dict/own_dic_p.txt", "r",encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        for i in data:
+            # print(i.split(' ',1)[1])
+            khmer_w = i.split(' ',1)[0]
+            khmer_p = i.split(' ',1)[1]
+            # wordsDict[khmer_w+khmer_p] = 1
+            wordsDict[khmer_w] = str(khmer_p)
+            # print(khmer_p)
+        # wordsDict.append(data)
+
+    f.close()
+    for k,v in wordsDict.items():
+        if string == k:
+            newV = v.split('1',1)[0]
+            # print(k + ' : '+ newV)
+            return k,newV
+    return string
+@app.get("/words_correct_sp/{str}")
+def read_item(str: str):
+    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    dictionary_path = './files/dict/own_dic_v2.txt'
+
+    sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+    result = sym_spell.lookup(str, Verbosity.CLOSEST,
+                               max_edit_distance=2,)
+    
+    results = []
+ 
+    list_k_p = {}
+    for suggestion in result:
+        results.append(suggestion)
+    for i in results:
+        a = check_to_pho(i.term)
+        kh, ph = a
+        list_k_p[kh] = ph
+    return {"str": list_k_p,'each word': 'word'}
 
 # word correction in hunspell
 
