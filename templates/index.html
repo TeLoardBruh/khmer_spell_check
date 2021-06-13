@@ -14,10 +14,13 @@
         <input type="submit" value="Submit">
     </form>
     <h1>Correction check:
-        {{id}}
- 
+        {% for item in kh %}
+        <li>{{ item.strip() }}</li>
+        {% endfor %}
+        </ul>
+
     </h1>
-    
+
 </body>
 
 </html>

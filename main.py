@@ -35,23 +35,19 @@ async def read_item(request: Request,words):
     results = []
  
     list_k_p = {}
-    for suggestion in result:
-        results.append(suggestion)
-    for i in results:
-        a = check_to_pho(i.term)
-        kh, ph = a
-        list_k_p[kh] = ph
-    print(list_k_p)
-    # return {"str": list_k_p,'each word': 'word'}
-    # if words:
-    #     sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    #     result = sym_spell.lookup(words, Verbosity.CLOSEST,
-    #                             max_edit_distance=2)
-        
-    #     for suggestion in result:
-    #         results.append(suggestion)
+    kh_w_frontend = []
+    if words:
+        for suggestion in result:
+            results.append(suggestion)
+        for i in results:
+            a = check_to_pho(i.term)
+            # print((a))
+            kh, ph = a
+            kh_w_frontend.append(kh)
+            list_k_p[kh] = ph.replace(" ", "")
+        # return {"str": list_k_p,'each word': 'word'}
+    return templates.TemplateResponse("index.html", {"request": request, "id": list_k_p, "kh": kh_w_frontend})
     
-    return templates.TemplateResponse("index.html", {"request": request, "id": list_k_p})
 
 
 
@@ -119,17 +115,15 @@ def check_to_pho(string):
     newV = []
     k = []
     for kIf,v in wordsDict.items():
-        if string == kIf:
+        if string.strip() == kIf:
             newVIf = v.split('1',1)[0]
             # print(k + ' : '+ newV)
             newV.append(newVIf)
-            # print(newV)
-            
-            # return k,newV
+    
+    for ks,v in wordsDict.items():
         for i in newV:
             if i == v.split('1',1)[0]:
-                k.append(kIf)
-                # print(k)
+                k.append(ks)
 
     if len(newV) == 0:
         return string
