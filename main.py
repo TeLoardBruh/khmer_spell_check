@@ -196,6 +196,7 @@ def read_item(str: str, q: Optional[str] = None):
     segmentation_split = words.split()
     segmentation_split_res = []
     res_arr = []
+    kh_pho_arr = {}
     for i in segmentation_split:
         segmentation_split_res.append(i)
         # print(i)
@@ -204,9 +205,14 @@ def read_item(str: str, q: Optional[str] = None):
         result = sym_spell_c.lookup(segmentation_split_res[i], Verbosity.CLOSEST,
                                max_edit_distance=2)
         for suggestion in result:
-            res_arr.append(suggestion)
+            res_arr.append(suggestion.term)
         # res.append(result)
+    for i in res_arr:
+        a = check_to_pho(i)
+        # print(a)
+        kh, ph = a
+        kh_pho_arr[kh] = ph
 
-    return {"sentence : ": words,"words in segment correction : ": res_arr }
+    return {"sentence : ": words,"words in segment correction : ": kh_pho_arr }
     
     
