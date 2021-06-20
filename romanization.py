@@ -113,6 +113,31 @@ def check_to_pho(string):
             return v
     return "key doesn't exist"
     print('')
-check_pho()
 
+# create function convert files to json 
+
+def convert_to_json():
+    fIn = open("./files/dict/word_phonemic_final.txt", "r",encoding="utf8")
+    wordsDict = {}
+    with open ("./files/dict/word_phonemic_final.txt", "r",encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        
+        for i in data:
+            # print(i.split(' ',1)[1])
+            khmer_w = i.split(' ',1)[0]
+            khmer_p = i.split(' ',1)[1].replace(' ','')
+            # wordsDict[khmer_w+khmer_p] = 1
+            wordsDict[khmer_w] = str(khmer_p)
+            # print(khmer_p)
+        # wordsDict.append(data)
+
+    fIn.close()
+    # print(wordsDict)
+    fOut = open("test1.json", "w",encoding="utf8")
+    json.dump(wordsDict, fOut, indent = 4,ensure_ascii=False)
+    fOut.close()
+    # print(wordsDict)
+    # pass
+# check_pho()
+convert_to_json()
 # print(check_to_pho("ស្រឡាញ់"))
