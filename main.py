@@ -325,37 +325,6 @@ def read_item(str: str, q: Optional[str] = None):
 
 # Sambath Works start Here
 
-
-def getSuggestionByPhonetic(word):
-    phonetic = ""
-    wordsListWithTheSamePhonetic = []
-
-    f = open("./files/dict/word_phonemic_final.txt", "r", encoding="utf8")
-    with open("./files/dict/own_dic_p.txt", "r", encoding='utf8') as myfile:
-        lines = myfile.read().splitlines()
-        for i in lines:
-            khmerWordInLine = i.split(' ', 1)[0]
-            phoneticInLine = i.split(' ', 1)[1]
-            if(word == khmerWordInLine):
-                phonetic = phoneticInLine
-                break
-        for i in lines:
-            khmerWordInLine = i.split(' ', 1)[0]
-            phoneticInLine = i.split(' ', 1)[1]
-            if(phonetic == phoneticInLine):
-                wordsListWithTheSamePhonetic.append(khmerWordInLine)
-    f.close()
-    return wordsListWithTheSamePhonetic
-
-
-def getSuggestionBySymSpell(word):
-    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-    dictionary_path = './files/dict/own_dic_v2.txt'
-    sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    results = sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=2,)
-    return results
-
-
 @app.get("/spell-check/{input}")
 def read_item(input: str):
     timer  = timeCounter()
@@ -366,13 +335,30 @@ def read_item(input: str):
     sym_spell_c.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
     result = sym_spell_s.word_segmentation(input)
     words = result[0]
-    words_splited = words.split()
+    raw_words_splited = words.split()
+    # return raw_words_splited
+    words_splited = []
+
+    for se in raw_words_splited:
+        if se != "​​" and se != "​" and se != "។​" and se != "៛": 
+            words_splited.append(se)
 
     toReturn = []
+
+    wordsDict = {}
+    with open("./files/dict/own_dic_p.txt", "r", encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        for i in data:
+            khmer_w = i.split(' ', 1)[0]
+            khmer_p = i.split(' ', 1)[1]
+            wordsDict[khmer_w] = str(khmer_p)
+    key_list = list(wordsDict.keys())
+    val_list = list(wordsDict.values())
+
     for word in words_splited:
-        result = getSuggestionBySymSpell(word)
+        result = sym_spell_c.lookup(word, Verbosity.CLOSEST, max_edit_distance=2,)
         # correct
-        if(len(result) == 1):
+        if(len(result) == 1 and result[0]._distance == 0):
             toPush = {
                 "segment": word,
                 "isCorrect": True
@@ -386,10 +372,21 @@ def read_item(input: str):
         }
         allSuggestions = []
         for i in result:
-            suggestionsByPhonetic = getSuggestionByPhonetic(i._term)
-            for sug in suggestionsByPhonetic:
+            wordsListWithTheSamePhonetic = []
+            khmerWord = i._term
+            print("khmerWord")
+            phonetic = wordsDict[khmerWord]
+            all_indexes = [] 
+            for phoneticIndex in range(0, len(val_list)) : 
+                if val_list[phoneticIndex] == phonetic : 
+                    all_indexes.append(phoneticIndex)
+            for rightIndex in all_indexes:
+                wordsListWithTheSamePhonetic.append(key_list[rightIndex])
+            
+            for sug in wordsListWithTheSamePhonetic:
                 allSuggestions.append(sug)
+        
         toPush["suggestions"] = allSuggestions
         toReturn.append(toPush)
-    # print(toReturn)
-    return {"str": toReturn,"timer : " : timer}
+    
+    return {"segementsWithSuggestions": toReturn, "segments": words_splited, "vl": val_list}
