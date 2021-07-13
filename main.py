@@ -13,10 +13,6 @@ from hunspell import Hunspell
 from itertools import islice
 from fastapi.middleware.cors import CORSMiddleware
 
-from hunspell import Hunspell
-import json
-import time
-
 from util.rnn import segment
 SPACE = '\u200b'
 
