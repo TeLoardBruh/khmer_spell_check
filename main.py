@@ -237,31 +237,30 @@ def read_item(str: str):
         for suggestion in result:
             res_arr.append(suggestion)
             if suggestion.distance == 0:
-                a.append({'words': suggestion.term,
+                a.append({'wrong_word': words[i], 'correct_words': suggestion.term,
                          'correction_condition': True})
 
             else:
-                b.append({'words': suggestion.term,
-                         'correction_condition': False, 'correction': words[i]})
+                b.append({'wrong_word': words[i], 'correct_words': suggestion.term,
+                         'correction_condition': False, })
 
         # print(res_arr)
-    # print(a[0]['condition'])
+    print(len(b))
     if a[0]['correction_condition'] == True:
         suggested_words.append({
-            'segment': a,
             'isCorrect': True,
+            'segment': a,
             "suc": True
         })
-    if b[0]['correction_condition'] == False:
+    if b[len(b) - 1]['correction_condition'] == False:
         suggested_words.append({
-            'segment': b[0]['correction'],
             'isCorrect': False,
             'suggestions': b,
             "suc": True,
 
         })
 
-    return {'suggested_word': suggested_words, "suc": True, }
+    return {'suggested_word': suggested_words, "suc": True,}
 # word correction in hunspell
 
 
