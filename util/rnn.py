@@ -25,7 +25,9 @@ CHARS = ["PADDING"] + ["UNK"] + KHCONST + KHVOWEL + KHSUB + KHDIAC + KHSYM + KHN
 chars2idx = {o: i for i, o in enumerate(CHARS)}
 idx2chars = {i: o for i, o in enumerate(CHARS)}
 
-train_on_gpu = torch.cuda.is_available()
+# for gpu
+train_on_gpu = False
+print(torch.zeros(1).cuda())
 
 def one_hot_encode(arr, n_labels):
   arr = arr.numpy()

@@ -14,6 +14,7 @@ from itertools import islice
 from fastapi.middleware.cors import CORSMiddleware
 
 from util.rnn import segment
+import re
 SPACE = '\u200b'
 
 # load both dictionary.
@@ -241,21 +242,27 @@ def read_item(str: str):
 def read_item(str: str):
     # ignore for check correction.
     ignore_txts = ('៛', '០', '១', '២', '៣', '៤', '៥' , '៦', '៧', '៨', '៩')
+    check_khmer = re.match(r'^[\u1780-\u17F9]+$', str, re.UNICODE)
+    suggested_words = []
 
+    if check_khmer == None:
+        return {'suggested_word': False, "suc": False}
+    # print(check_khmer)
     # segment the input.
     # result = sym_spell_s.word_segmentation('ខ្ញុំ​ស្រលាអ្នក')
-    result = segment('ខ្ញុំ​ស្រលាអ្នក')
+    result = segment(str)
     # words = result[0].replace(SPACE, ' ')
     # raw_words = tuple(set(words.split()))
     raw_words = result
     # ========
-    suggested_words = []
     for raw_word in raw_words:
         if raw_word not in ignore_txts:
             if hunspell.spell(raw_word):
+
                 suggested_words.append({
                     'segment': raw_word,
                     'isCorrect': True,
+                    "suc": True
                 })
             else:
                 look_similars = hunspell.suggest(raw_word)
@@ -271,11 +278,12 @@ def read_item(str: str):
                 suggested_words.append({
                     'segment': raw_word,
                     'isCorrect': False,
+                    "suc": True,
                     'suggestions': list(set(look_similars + tuple(sound_similars)))
                 })
     #===========
 
-    return {'suggested_word': suggested_words}
+    return {'suggested_word': suggested_words, "suc": True}
 
 
 # words seg + correction
