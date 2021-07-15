@@ -406,5 +406,5 @@ def read_item(input: str):
     
     return {"segementsWithSuggestions": toReturn, "segments": words_splited, "vl": val_list}
 
-if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+# if __name__ == "__main__":
+#     uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
