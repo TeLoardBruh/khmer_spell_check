@@ -404,3 +404,4 @@ def read_item(input: str):
         toReturn.append(toPush)
     
     return {"segementsWithSuggestions": toReturn, "segments": words_splited, "vl": val_list}
+
