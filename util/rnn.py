@@ -27,7 +27,6 @@ idx2chars = {i: o for i, o in enumerate(CHARS)}
 
 # for gpu
 train_on_gpu = False
-print(torch.zeros(1).cuda())
 
 def one_hot_encode(arr, n_labels):
   arr = arr.numpy()

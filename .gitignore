@@ -10,3 +10,5 @@ jamspell.py
 lookup_json.py
 test/*
 env/*
+files/dict/own_dic.txt
+files/dict/word_phonemic_final.txt
