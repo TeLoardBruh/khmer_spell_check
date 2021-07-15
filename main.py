@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 import uvicorn
 
@@ -20,31 +21,34 @@ SPACE = '\u200b'
 
 # load both dictionary.
 with open('files/split/ph_to_kh_dict.json') as f:
-  ph_to_kh_dict = json.load(f)
+    ph_to_kh_dict = json.load(f)
 with open('files/split/kh_to_ph_dict.json') as f:
-  kh_to_ph_dict = json.load(f)
+    kh_to_ph_dict = json.load(f)
 
 # term_index is the column of the term and count_index is the
 # column of the term frequency
 # sym_spell_s.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
 
-# load hunspell.
+# load hunspell and symspell.
 hunspell = Hunspell('km_KH', hunspell_data_dir='files/dict')
+sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
 
 # call symspell for spliting the input
 # sym_spell_s = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
 dictionary_path = './files/dict/own_dic_v2.txt'
-
-# importing for testing performance purpose 
-import time
+sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+# importing for testing performance purpose
 start_time = time.time()
 # print(start_time)
+
+
 def timeCounter():
 
     a = time.time() - start_time
-    # print("Elapsed time:", t1_stop, 'ns', t1_start, 'ns') 
+    # print("Elapsed time:", t1_stop, 'ns', t1_start, 'ns')
     return a
 # =========================================
+
 
 app = FastAPI()
 # app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -177,7 +181,9 @@ def check_to_pho(string):
         # print(newV)
         return str(k), str(newV)
 
-# 
+#
+
+
 def improveWordsToPho(string):
     f = open("./files/dict/test1.json", "r", encoding="utf8")
     wordsDict = {}
@@ -213,36 +219,56 @@ def improveWordsToPho(string):
     else:
         # print(newV)
         return str(k), str(newV)
-    
+
 
 @app.get("/words_correct_sp/{str}")
 def read_item(str: str):
-    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-    dictionary_path = './files/dict/own_dic_v2.txt'
+    result = segment(str)
+    words = result
+    res_arr = []
+    a = []
+    b = []
+    c = []
+    kh_pho_arr = {}
+    suggested_words = []
+    for i in range(len(words)):
+        result = sym_spell.lookup(words[i], Verbosity.CLOSEST,
+                                  max_edit_distance=2)
+        for suggestion in result:
+            res_arr.append(suggestion)
+            if suggestion.distance == 0:
+                a.append({'words': suggestion.term,
+                         'correction_condition': True})
 
-    sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    result = sym_spell.lookup(str, Verbosity.CLOSEST,
-                              max_edit_distance=2,)
+            else:
+                b.append({'words': suggestion.term,
+                         'correction_condition': False, 'correction': words[i]})
 
-    results = []
+        # print(res_arr)
+    # print(a[0]['condition'])
+    if a[0]['correction_condition'] == True:
+        suggested_words.append({
+            'segment': a,
+            'isCorrect': True,
+            "suc": True
+        })
+    if b[0]['correction_condition'] == False:
+        suggested_words.append({
+            'segment': b[0]['correction'],
+            'isCorrect': False,
+            'suggestions': b,
+            "suc": True,
 
-    list_k_p = {}
-    for suggestion in result:
-        results.append(suggestion)
-    for i in results:
-        a = improveWordsToPho(i.term)
-        # print((a))
-        kh, ph = a
-        list_k_p[kh] = ph
-    return {"str": list_k_p, 'each word': 'word'}
+        })
 
+    return {'suggested_word': suggested_words, "suc": True, }
 # word correction in hunspell
 
 
-@app.get("/words_correct_h/{str}")
+@ app.get("/words_correct_h/{str}")
 def read_item(str: str):
     # ignore for check correction.
-    ignore_txts = ('៛', '០', '១', '២', '៣', '៤', '៥' , '៦', '៧', '៨', '៩')
+    ignore_txts = ('៛', '០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩')
     check_khmer = re.match(r'^[\u1780-\u17F9]+$', str, re.UNICODE)
     suggested_words = []
 
@@ -282,22 +308,22 @@ def read_item(str: str):
                     "suc": True,
                     'suggestions': list(set(look_similars + tuple(sound_similars)))
                 })
-    #===========
+    # ===========
 
     return {'suggested_word': suggested_words, "suc": True}
 
 
 # words seg + correction
-@app.get("/words_sc/{str}")
+@ app.get("/words_sc/{str}")
 def read_item(str: str, q: Optional[str] = None):
-    timer  = timeCounter()
-    sym_spell_s = SymSpell(max_dictionary_edit_distance=0, prefix_length=7)
-    sym_spell_c = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-    dictionary_path = './files/dict/own_dic_v2.txt'
-    # term_index is the column of the term and count_index is the
-    # column of the term frequency
-    sym_spell_s.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    sym_spell_c.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+    timer = timeCounter()
+    # sym_spell_s = SymSpell(max_dictionary_edit_distance=0, prefix_length=7)
+    # sym_spell_c = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    # dictionary_path = './files/dict/own_dic_v2.txt'
+    # # term_index is the column of the term and count_index is the
+    # # column of the term frequency
+    # sym_spell_s.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+    # sym_spell_c.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
     # print(sym_spell.words.items())
     # lookup suggestions for single-word input strings
     input_term = "ខ្ញុំចង់"  # misspelling of "members"
@@ -310,12 +336,12 @@ def read_item(str: str, q: Optional[str] = None):
     # print("in here")
     # for suggestion in suggestions:
     #     print(suggestion)
-    result = sym_spell_s.word_segmentation(str)
-    words = result.corrected_string
+    result = segment(str)
+    words = result
     # print("{}, {}, {}".format(result.corrected_string, result.distance_sum,
     #                           result.log_prob_sum))
     # print(type(words))
-    segmentation_split = words.split()
+    segmentation_split = words
     segmentation_split_res = []
     res_arr = []
     kh_pho_arr = {}
@@ -324,8 +350,8 @@ def read_item(str: str, q: Optional[str] = None):
         # print(i)
     for i in range(len(segmentation_split_res)):
         # print(arr[i])
-        result = sym_spell_c.lookup(segmentation_split_res[i], Verbosity.CLOSEST,
-                                    max_edit_distance=2)
+        result = sym_spell.lookup(segmentation_split_res[i], Verbosity.CLOSEST,
+                                  max_edit_distance=2)
         for suggestion in result:
             res_arr.append(suggestion.term)
         # res.append(result)
@@ -335,14 +361,14 @@ def read_item(str: str, q: Optional[str] = None):
         kh, ph = a
         kh_pho_arr[kh] = ph
 
-    return {"sentence : ": words, "words in segment correction : ": kh_pho_arr, "timer : " : timer}
+    return {"sentence : ": words, "words in segment correction : ": kh_pho_arr, "timer : ": timer}
 
 
 # Sambath Works start Here
 
-@app.get("/spell-check/{input}")
+@ app.get("/spell-check/{input}")
 def read_item(input: str):
-    timer  = timeCounter()
+    timer = timeCounter()
     sym_spell_s = SymSpell(max_dictionary_edit_distance=0, prefix_length=7)
     sym_spell_c = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
     dictionary_path = './files/dict/own_dic_v2.txt'
@@ -355,7 +381,7 @@ def read_item(input: str):
     words_splited = []
 
     for se in raw_words_splited:
-        if se != "​​" and se != "​" and se != "។​" and se != "៛": 
+        if se != "​​" and se != "​" and se != "។​" and se != "៛":
             words_splited.append(se)
 
     toReturn = []
@@ -371,7 +397,8 @@ def read_item(input: str):
     val_list = list(wordsDict.values())
 
     for word in words_splited:
-        result = sym_spell_c.lookup(word, Verbosity.CLOSEST, max_edit_distance=2,)
+        result = sym_spell_c.lookup(
+            word, Verbosity.CLOSEST, max_edit_distance=2,)
         # correct
         if(len(result) == 1 and result[0]._distance == 0):
             toPush = {
@@ -391,19 +418,19 @@ def read_item(input: str):
             khmerWord = i._term
             print("khmerWord")
             phonetic = wordsDict[khmerWord]
-            all_indexes = [] 
-            for phoneticIndex in range(0, len(val_list)) : 
-                if val_list[phoneticIndex] == phonetic : 
+            all_indexes = []
+            for phoneticIndex in range(0, len(val_list)):
+                if val_list[phoneticIndex] == phonetic:
                     all_indexes.append(phoneticIndex)
             for rightIndex in all_indexes:
                 wordsListWithTheSamePhonetic.append(key_list[rightIndex])
-            
+
             for sug in wordsListWithTheSamePhonetic:
                 allSuggestions.append(sug)
-        
+
         toPush["suggestions"] = allSuggestions
         toReturn.append(toPush)
-    
+
     return {"segementsWithSuggestions": toReturn, "segments": words_splited, "vl": val_list}
 
 # if __name__ == "__main__":
