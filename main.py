@@ -228,8 +228,6 @@ def read_item(str: str):
     res_arr = []
     a = []
     b = []
-    c = []
-    kh_pho_arr = {}
     suggested_words = []
     for i in range(len(words)):
         result = sym_spell.lookup(words[i], Verbosity.CLOSEST,
