@@ -1,0 +1,4 @@
+symspellpy
+cyhunspell
+fastapi
+uvicorn[standard]

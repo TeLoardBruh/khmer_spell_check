@@ -13,6 +13,26 @@ from hunspell import Hunspell
 from itertools import islice
 from fastapi.middleware.cors import CORSMiddleware
 
+from util.rnn import segment
+SPACE = '\u200b'
+
+# load both dictionary.
+with open('files/split/ph_to_kh_dict.json') as f:
+  ph_to_kh_dict = json.load(f)
+with open('files/split/kh_to_ph_dict.json') as f:
+  kh_to_ph_dict = json.load(f)
+
+# term_index is the column of the term and count_index is the
+# column of the term frequency
+# sym_spell_s.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
+
+# load hunspell.
+hunspell = Hunspell('km_KH', hunspell_data_dir='files/dict')
+
+# call symspell for spliting the input
+# sym_spell_s = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+dictionary_path = './files/dict/own_dic_v2.txt'
+
 # importing for testing performance purpose 
 import time
 start_time = time.time()
@@ -219,15 +239,43 @@ def read_item(str: str):
 
 @app.get("/words_correct_h/{str}")
 def read_item(str: str):
-    # adding the dictionary
-    h = Hunspell('km_KH', hunspell_data_dir='./files/dict')
-    # True
-    print(h.spell('ស្រឡាញ់'))
-    if(h.spell(str)):
-        return {"str": str, 'each word': 'word'}
-    else:
-        result = h.suggest(str)
-        return {"str": result, 'each word': 'word'}
+    # ignore for check correction.
+    ignore_txts = ('៛', '០', '១', '២', '៣', '៤', '៥' , '៦', '៧', '៨', '៩')
+
+    # segment the input.
+    # result = sym_spell_s.word_segmentation('ខ្ញុំ​ស្រលាអ្នក')
+    result = segment('ខ្ញុំ​ស្រលាអ្នក')
+    # words = result[0].replace(SPACE, ' ')
+    # raw_words = tuple(set(words.split()))
+    raw_words = result
+    # ========
+    suggested_words = []
+    for raw_word in raw_words:
+        if raw_word not in ignore_txts:
+            if hunspell.spell(raw_word):
+                suggested_words.append({
+                    'segment': raw_word,
+                    'isCorrect': True,
+                })
+            else:
+                look_similars = hunspell.suggest(raw_word)
+                sound_similars = []
+                for look_similar in look_similars:
+                    sound_similar = kh_to_ph_dict.get(look_similar)
+                    if sound_similar != None:
+                        for ph in sound_similar:
+                            kh_txts = ph_to_kh_dict.get(ph)
+                            if kh_txts != None:
+                                sound_similars.extend(kh_txts)
+
+                suggested_words.append({
+                    'segment': raw_word,
+                    'isCorrect': False,
+                    'suggestions': list(set(look_similars + tuple(sound_similars)))
+                })
+    #===========
+
+    return {'suggested_word': suggested_words}
 
 
 # words seg + correction
@@ -283,37 +331,6 @@ def read_item(str: str, q: Optional[str] = None):
 
 # Sambath Works start Here
 
-
-def getSuggestionByPhonetic(word):
-    phonetic = ""
-    wordsListWithTheSamePhonetic = []
-
-    f = open("./files/dict/word_phonemic_final.txt", "r", encoding="utf8")
-    with open("./files/dict/own_dic_p.txt", "r", encoding='utf8') as myfile:
-        lines = myfile.read().splitlines()
-        for i in lines:
-            khmerWordInLine = i.split(' ', 1)[0]
-            phoneticInLine = i.split(' ', 1)[1]
-            if(word == khmerWordInLine):
-                phonetic = phoneticInLine
-                break
-        for i in lines:
-            khmerWordInLine = i.split(' ', 1)[0]
-            phoneticInLine = i.split(' ', 1)[1]
-            if(phonetic == phoneticInLine):
-                wordsListWithTheSamePhonetic.append(khmerWordInLine)
-    f.close()
-    return wordsListWithTheSamePhonetic
-
-
-def getSuggestionBySymSpell(word):
-    sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-    dictionary_path = './files/dict/own_dic_v2.txt'
-    sym_spell.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    results = sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=2,)
-    return results
-
-
 @app.get("/spell-check/{input}")
 def read_item(input: str):
     timer  = timeCounter()
@@ -324,13 +341,30 @@ def read_item(input: str):
     sym_spell_c.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
     result = sym_spell_s.word_segmentation(input)
     words = result[0]
-    words_splited = words.split()
+    raw_words_splited = words.split()
+    # return raw_words_splited
+    words_splited = []
+
+    for se in raw_words_splited:
+        if se != "​​" and se != "​" and se != "។​" and se != "៛": 
+            words_splited.append(se)
 
     toReturn = []
+
+    wordsDict = {}
+    with open("./files/dict/own_dic_p.txt", "r", encoding='utf8') as myfile:
+        data = myfile.read().splitlines()
+        for i in data:
+            khmer_w = i.split(' ', 1)[0]
+            khmer_p = i.split(' ', 1)[1]
+            wordsDict[khmer_w] = str(khmer_p)
+    key_list = list(wordsDict.keys())
+    val_list = list(wordsDict.values())
+
     for word in words_splited:
-        result = getSuggestionBySymSpell(word)
+        result = sym_spell_c.lookup(word, Verbosity.CLOSEST, max_edit_distance=2,)
         # correct
-        if(len(result) == 1):
+        if(len(result) == 1 and result[0]._distance == 0):
             toPush = {
                 "segment": word,
                 "isCorrect": True
@@ -344,10 +378,21 @@ def read_item(input: str):
         }
         allSuggestions = []
         for i in result:
-            suggestionsByPhonetic = getSuggestionByPhonetic(i._term)
-            for sug in suggestionsByPhonetic:
+            wordsListWithTheSamePhonetic = []
+            khmerWord = i._term
+            print("khmerWord")
+            phonetic = wordsDict[khmerWord]
+            all_indexes = [] 
+            for phoneticIndex in range(0, len(val_list)) : 
+                if val_list[phoneticIndex] == phonetic : 
+                    all_indexes.append(phoneticIndex)
+            for rightIndex in all_indexes:
+                wordsListWithTheSamePhonetic.append(key_list[rightIndex])
+            
+            for sug in wordsListWithTheSamePhonetic:
                 allSuggestions.append(sug)
+        
         toPush["suggestions"] = allSuggestions
         toReturn.append(toPush)
-    # print(toReturn)
-    return {"str": toReturn,"timer : " : timer}
+    
+    return {"segementsWithSuggestions": toReturn, "segments": words_splited, "vl": val_list}
