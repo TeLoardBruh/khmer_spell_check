@@ -1,0 +1,5 @@
+final deliver :
+
+- have UI
+- have the product ready
+- video demo

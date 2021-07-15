@@ -120,7 +120,6 @@ def read_item(str: str):
 
 # words sym pho
 def check_to_pho(string):
-    
     f = open("./files/dict/word_phonemic_final.txt", "r", encoding="utf8")
     wordsDict = {}
     # test = f.read().split()
@@ -209,7 +208,7 @@ def read_item(str: str):
     for suggestion in result:
         results.append(suggestion)
     for i in results:
-        a = check_to_pho(i.term)
+        a = improveWordsToPho(i.term)
         # print((a))
         kh, ph = a
         list_k_p[kh] = ph
