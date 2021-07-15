@@ -1,2 +1,12 @@
 .vscode
 __pycache__
+romanization.py
+split_word-phonemic.py
+test.py
+test_correct_suggest.py
+own_dic_p.txt
+grammar_json.py
+jamspell.py
+lookup_json.py
+test/*
+env/*
