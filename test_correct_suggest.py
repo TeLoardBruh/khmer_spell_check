@@ -35,20 +35,30 @@ result = segment('ខ្ញុំ​ស្រលាអ្នក')
 # raw_words = tuple(set(words.split()))
 raw_words = result
 
-suggested_words = {}
+suggested_words = []
 for raw_word in raw_words:
-  if raw_word not in ignore_txts and not hunspell.spell(raw_word):
-    look_similars = hunspell.suggest(raw_word)
-    sound_similars = []
-    for look_similar in look_similars:
-      sound_similar = kh_to_ph_dict.get(look_similar)
-      if sound_similar != None:
-        for ph in sound_similar:
-          kh_txts = ph_to_kh_dict.get(ph)
-          if kh_txts != None:
-            sound_similars.extend(kh_txts)
+  if raw_word not in ignore_txts:
+    if hunspell.spell(raw_word):
+      suggested_words.append({
+        'segment': raw_word,
+        'isCorrect': True,
+      })
+    else:
+      look_similars = hunspell.suggest(raw_word)
+      sound_similars = []
+      for look_similar in look_similars:
+        sound_similar = kh_to_ph_dict.get(look_similar)
+        if sound_similar != None:
+          for ph in sound_similar:
+            kh_txts = ph_to_kh_dict.get(ph)
+            if kh_txts != None:
+              sound_similars.extend(kh_txts)
 
-    suggested_words[raw_word] = list(set(look_similars + tuple(sound_similars)))
+      suggested_words.append({
+        'segment': raw_word,
+        'isCorrect': False,
+        'suggestions': list(set(look_similars + tuple(sound_similars)))
+      })
 
 print(suggested_words)
 end_time = time.time()
