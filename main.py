@@ -10,6 +10,9 @@ from fastapi.templating import Jinja2Templates
 import json
 import os
 import pkg_resources
+import itertools
+
+
 from symspellpy import SymSpell, Verbosity
 from hunspell import Hunspell
 from itertools import islice
@@ -56,15 +59,16 @@ templates = Jinja2Templates(directory="templates")
 
 
 origins = [
-    "http://localhost",
+    # "http://localhost",
     # i use port 400 for frontend
     "http://localhost:4000",
+    "*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -229,36 +233,46 @@ def read_item(str: str):
     a = []
     b = []
     suggested_words = []
+    check_khmer = re.match(r'^[\u1780-\u17F9]+$', str, re.UNICODE)
+    if check_khmer == None:
+        return {'suggested_word': False, "suc": False}
     for i in range(len(words)):
         result = sym_spell.lookup(words[i], Verbosity.CLOSEST,
                                   max_edit_distance=2)
+        # print(result)
         for suggestion in result:
+            # print(suggestion)
             res_arr.append(suggestion)
             if suggestion.distance == 0:
-                a.append({'wrong_word': words[i], 'correct_words': suggestion.term,
+                a.append({'correct_words': words[i],
                          'correction_condition': True})
 
             else:
                 b.append({'wrong_word': words[i], 'correct_words': suggestion.term,
                          'correction_condition': False, })
+                
 
         # print(res_arr)
-    print(len(b))
-    if a[0]['correction_condition'] == True:
-        suggested_words.append({
-            'isCorrect': True,
-            'segment': a,
-            "suc": True
-        })
-    if b[len(b) - 1]['correction_condition'] == False:
-        suggested_words.append({
-            'isCorrect': False,
-            'suggestions': b,
-            "suc": True,
 
-        })
+    # print(b)
+    if len(a) > 0 and a[len(a) - 1]['correction_condition'] == True:
+        suggested_words.extend(
+            list(map(lambda x: {'segment': x['correct_words'], 'isCorrect': True, }, a)))
+    
+    if len(b) > 0 and b[len(b) - 1]['correction_condition'] == False:
+        current_word_for_b = ''
+        for corrected in b:
+            if corrected['wrong_word'] != current_word_for_b:
+                suggested_words.append({
+                'segment': corrected['wrong_word'],
+                'isCorrect': False,
+                'suggestions': [corrected['correct_words']]
+                })
+                current_word_for_b = corrected['wrong_word']
+            else:
+                suggested_words[suggested_words.index(list(filter(lambda x: x.get('segment') == current_word_for_b, suggested_words))[0])]['suggestions'].append(corrected['correct_words'])
 
-    return {'suggested_word': suggested_words, "suc": True,}
+    return {'suggested_word': suggested_words, "suc": True, }
 # word correction in hunspell
 
 
@@ -313,52 +327,10 @@ def read_item(str: str):
 # words seg + correction
 @ app.get("/words_sc/{str}")
 def read_item(str: str, q: Optional[str] = None):
-    timer = timeCounter()
-    # sym_spell_s = SymSpell(max_dictionary_edit_distance=0, prefix_length=7)
-    # sym_spell_c = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-    # dictionary_path = './files/dict/own_dic_v2.txt'
-    # # term_index is the column of the term and count_index is the
-    # # column of the term frequency
-    # sym_spell_s.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    # sym_spell_c.load_dictionary(dictionary_path, 0, 1, encoding="utf8")
-    # print(sym_spell.words.items())
-    # lookup suggestions for single-word input strings
-    input_term = "ខ្ញុំចង់"  # misspelling of "members"
-    # max edit distance per lookup
-    # (max_edit_distance_lookup <= max_dictionary_edit_distance)
-    # suggestions = sym_spell.lookup(input_term, Verbosity.CLOSEST,
-    #                            max_edit_distance=2, )
-    # # display suggestion term, term frequency, and edit distance
-    # # display suggestion term, term frequency, and edit distance
-    # print("in here")
-    # for suggestion in suggestions:
-    #     print(suggestion)
     result = segment(str)
-    words = result
-    # print("{}, {}, {}".format(result.corrected_string, result.distance_sum,
-    #                           result.log_prob_sum))
-    # print(type(words))
-    segmentation_split = words
-    segmentation_split_res = []
-    res_arr = []
-    kh_pho_arr = {}
-    for i in segmentation_split:
-        segmentation_split_res.append(i)
-        # print(i)
-    for i in range(len(segmentation_split_res)):
-        # print(arr[i])
-        result = sym_spell.lookup(segmentation_split_res[i], Verbosity.CLOSEST,
-                                  max_edit_distance=2)
-        for suggestion in result:
-            res_arr.append(suggestion.term)
-        # res.append(result)
-    for i in res_arr:
-        a = improveWordsToPho(i)
-        # print(a)
-        kh, ph = a
-        kh_pho_arr[kh] = ph
+    word = result
 
-    return {"sentence : ": words, "words in segment correction : ": kh_pho_arr, "timer : ": timer}
+    return {"sentence : ": str, "words in segment : ": word, }
 
 
 # Sambath Works start Here
